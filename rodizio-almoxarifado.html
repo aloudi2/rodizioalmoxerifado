@@ -1,0 +1,343 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rodízio do Almoxarifado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#14161a; --ink-2:#2b2f36;
+    --mist:#e3e6e5; --mist-2:#f2f4f3;
+    --line:#c8cdcb; --muted:#6e7573;
+    --safety:#f2c500; --cobalt:#1f6f9c; --ok:#2f7d5b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--mist);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:20px 18px 64px}
+
+  header.tag{background:var(--ink);color:var(--mist-2);border-radius:2px;padding:18px 20px 0;overflow:hidden}
+  header.tag h1{font-family:"Oswald",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(24px,5.5vw,40px);line-height:1;margin:0}
+  header.tag h1 em{font-style:normal;color:var(--safety)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .weekline{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.06em;color:var(--mist-2);margin:10px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .nav{border:1px solid #444a52;background:transparent;color:var(--mist-2);border-radius:2px;cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:12px;padding:3px 9px;line-height:1.6}
+  .nav:hover{background:#242830}
+  .barcode{display:flex;gap:2px;height:16px;margin-top:14px;align-items:flex-end}
+  .barcode i{display:block;background:var(--mist-2);opacity:.55;height:100%}
+
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--mist-2);border:1px solid var(--line);border-top:none;padding:14px 16px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  label.lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  input,select,button{font-family:inherit;font-size:14px}
+  input[type=text],select{border:1px solid var(--line);background:#fff;border-radius:2px;padding:7px 9px;color:var(--ink);min-width:0}
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+  .btn{border:1px solid var(--ink);background:var(--ink);color:var(--mist-2);border-radius:2px;padding:8px 13px;cursor:pointer;font-weight:500}
+  .btn:hover{background:var(--ink-2)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{background:#fff;border-color:var(--ink)}
+  .spacer{flex:1}
+  .check-inline{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);padding-bottom:8px}
+
+  /* ---------- quadro da semana ---------- */
+  .grid{margin-top:22px;border:1px solid var(--ink);background:#fff}
+  .head{display:grid;grid-template-columns:92px 1fr 1fr;background:var(--ink);color:var(--mist-2)}
+  .head div{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:9px 12px}
+  .head .who{display:flex;align-items:center;gap:8px}
+  .chip{width:11px;height:11px;border-radius:50%;flex:none}
+  .chip.a{background:var(--safety)} .chip.b{background:var(--cobalt)}
+
+  .row{display:grid;grid-template-columns:92px 1fr 1fr;border-top:1px solid var(--line)}
+  .row.today{background:#fffdf2}
+  .row.today .day{background:var(--safety);color:var(--ink)}
+  .day{background:var(--mist-2);padding:12px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+  .day b{font-family:"Oswald",sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:17px;font-weight:600;line-height:1}
+  .day small{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+  .row.today .day small{color:var(--ink-2)}
+  .cell{padding:11px 12px;border-right:1px solid var(--line)}
+  .cell:last-child{border-right:none}
+  .cell ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .cell li{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+  .cell li input{margin:2px 0 0;accent-color:var(--ok);width:16px;height:16px;flex:none}
+  .cell li.done span.txt{text-decoration:line-through;color:var(--muted)}
+  .code{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);flex:none;padding-top:2px}
+  .empty{color:var(--muted);font-size:13px;font-style:italic}
+
+  section.tasks{margin-top:34px}
+  h3{font-family:"Oswald",sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:15px;margin:0 0 10px;font-weight:600}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line)}
+  th{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:9px 10px;border-bottom:1px solid var(--line)}
+  td{padding:7px 10px;border-bottom:1px solid var(--mist);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  td input[type=text]{width:100%;border-color:transparent;background:transparent;padding:5px 6px}
+  td input[type=text]:hover{border-color:var(--line);background:#fff}
+  td select{padding:5px 6px;width:100%}
+  .rm{border:none;background:none;color:var(--muted);cursor:pointer;font-size:17px;line-height:1;padding:4px 7px;border-radius:2px}
+  .rm:hover{color:#a8322b;background:var(--mist-2)}
+  .col-code{width:74px} .col-mode{width:200px} .col-rm{width:44px}
+
+  footer.note{margin-top:26px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+
+  @media (max-width:720px){
+    .head{display:none}
+    .row{grid-template-columns:1fr;border-top:2px solid var(--ink)}
+    .day{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;align-items:baseline;gap:8px}
+    .cell{border-right:none;border-bottom:1px solid var(--mist)}
+    .cell:last-child{border-bottom:none}
+    .cell::before{content:attr(data-name);display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .col-mode{width:140px} table{font-size:13px}
+  }
+  @media print{
+    body{background:#fff} .bar,section.tasks,footer.note,.nav{display:none}
+    .grid{page-break-inside:avoid}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="tag">
+    <p class="eyebrow">Grupo Sabin · Almoxarifado</p>
+    <h1>Rodízio <em>da semana</em></h1>
+    <p class="weekline">
+      <button class="nav" id="prev" aria-label="Semana anterior">◀</button>
+      <span id="weekLabel"></span>
+      <button class="nav" id="next" aria-label="Próxima semana">▶</button>
+      <button class="nav" id="thisWeek">Semana atual</button>
+    </p>
+    <div class="barcode" id="barcode" aria-hidden="true"></div>
+  </header>
+
+  <div class="bar">
+    <div class="field">
+      <label class="lbl" for="nameA">Pessoa A</label>
+      <input type="text" id="nameA" size="12">
+    </div>
+    <div class="field">
+      <label class="lbl" for="nameB">Pessoa B</label>
+      <input type="text" id="nameB" size="12">
+    </div>
+    <label class="check-inline"><input type="checkbox" id="sat"> Incluir sábado</label>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="swap">Inverter lados</button>
+    <button class="btn ghost" id="print">Imprimir</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <section class="tasks">
+    <h3>Tarefas e regra de rodízio</h3>
+    <table>
+      <thead><tr><th class="col-code">Código</th><th>Tarefa</th><th class="col-mode">Rodízio</th><th class="col-rm"></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p style="margin:10px 0 0"><button class="btn" id="add">Adicionar tarefa</button></p>
+  </section>
+
+  <footer class="note">
+    <strong>Alterna por dia</strong>: troca de dono a cada dia da semana, e vira de lado na semana seguinte.
+    <strong>Alterna por semana</strong>: mesma pessoa de segunda a sábado, troca na próxima semana — bom pra tarefa que exige continuidade, tipo contagem.
+    <strong>Fixa</strong>: sai do rodízio. Use “Inverter lados” uma vez se a escala nascer trocada em relação ao que já acontece na prática.
+  </footer>
+</div>
+
+<script>
+const store = {
+  async get(k){ try{
+    if (window.storage){ const r = await window.storage.get(k); return r ? JSON.parse(r.value) : null; }
+    const v = localStorage.getItem(k); return v ? JSON.parse(v) : null;
+  }catch(e){ return null; } },
+  async set(k,v){ try{
+    if (window.storage){ await window.storage.set(k, JSON.stringify(v)); return; }
+    localStorage.setItem(k, JSON.stringify(v));
+  }catch(e){} }
+};
+
+const DEFAULTS = {
+  nameA:"Luide", nameB:"Renan", offset:0, sat:true,
+  tasks:[
+    {code:"ALM-01", name:"Recebimento e conferência de notas",       mode:"dia"},
+    {code:"ALM-02", name:"Separação de pedidos dos setores",         mode:"dia"},
+    {code:"ALM-03", name:"Lançamento de entradas no sistema",        mode:"dia"},
+    {code:"ALM-04", name:"Abastecimento de geladeiras e câmara fria",mode:"dia"},
+    {code:"ALM-05", name:"Controle de temperatura",                  mode:"semana"},
+    {code:"ALM-06", name:"Contagem cíclica de estoque",              mode:"semana"},
+    {code:"ALM-07", name:"Conferência de validades (FEFO)",          mode:"semana"},
+    {code:"ALM-08", name:"Organização de embalagens e descarte",     mode:"dia"}
+  ]
+};
+const DAYS = ["Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const SHORT = ["Seg","Ter","Qua","Qui","Sex","Sáb"];
+const MONTHS = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+let cfg = structuredClone(DEFAULTS);
+let checks = {};
+let monday = mondayOf(new Date());
+
+function mondayOf(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function iso(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function weekIndex(d){ return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 604800000); }
+
+function ownerOf(task, dayIdx, wk){
+  if (task.mode === "fixa-a") return "a";
+  if (task.mode === "fixa-b") return "b";
+  const n = task.mode === "semana" ? wk : wk + dayIdx;
+  return ((n + cfg.offset) % 2 === 0) ? "a" : "b";
+}
+
+const $ = id => document.getElementById(id);
+
+function renderWeekLabel(){
+  const end = addDays(monday, cfg.sat ? 5 : 4);
+  const same = monday.getMonth() === end.getMonth();
+  $("weekLabel").textContent = "Semana de " + monday.getDate() + (same ? "" : " de " + MONTHS[monday.getMonth()])
+    + " a " + end.getDate() + " de " + MONTHS[end.getMonth()];
+}
+
+function renderGrid(){
+  const wk = weekIndex(monday);
+  const nA = cfg.nameA || "Pessoa A", nB = cfg.nameB || "Pessoa B";
+  const g = $("grid");
+  g.innerHTML =
+    '<div class="head"><div>Dia</div>' +
+    '<div class="who"><span class="chip a"></span>' + nA + '</div>' +
+    '<div class="who"><span class="chip b"></span>' + nB + '</div></div>';
+
+  const todayISO = iso(new Date());
+  const n = cfg.sat ? 6 : 5;
+
+  for (let d = 0; d < n; d++){
+    const date = addDays(monday, d);
+    const key = iso(date);
+    const done = checks[key] || {};
+    const row = document.createElement("div");
+    row.className = "row" + (key === todayISO ? " today" : "");
+
+    const day = document.createElement("div");
+    day.className = "day";
+    day.innerHTML = "<b>" + SHORT[d] + "</b><small>" + date.getDate() + "/" + String(date.getMonth()+1).padStart(2,"0") + "</small>";
+    day.firstChild.title = DAYS[d];
+    row.appendChild(day);
+
+    ["a","b"].forEach(side => {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.name = side === "a" ? nA : nB;
+      const ul = document.createElement("ul");
+      const mine = cfg.tasks.filter(t => ownerOf(t, d, wk) === side);
+      if (!mine.length){
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="empty">Sem tarefa fixa neste dia.</span>';
+        ul.appendChild(li);
+      }
+      mine.forEach(t => {
+        const li = document.createElement("li");
+        if (done[t.code]) li.className = "done";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = !!done[t.code];
+        cb.setAttribute("aria-label", t.name + " — " + DAYS[d]);
+        cb.onchange = () => {
+          checks[key] = checks[key] || {};
+          if (cb.checked) checks[key][t.code] = true; else delete checks[key][t.code];
+          store.set("rodizio:checks", checks);
+          renderGrid();
+        };
+        const code = document.createElement("span");
+        code.className = "code"; code.textContent = t.code;
+        const txt = document.createElement("span");
+        txt.className = "txt"; txt.textContent = t.name;
+        li.append(cb, code, txt);
+        ul.appendChild(li);
+      });
+      cell.appendChild(ul);
+      row.appendChild(cell);
+    });
+    g.appendChild(row);
+  }
+  renderWeekLabel();
+}
+
+function renderRows(){
+  const tb = $("rows"); tb.innerHTML = "";
+  cfg.tasks.forEach((t, i) => {
+    const tr = document.createElement("tr");
+    const tdCode = document.createElement("td");
+    tdCode.innerHTML = '<span class="code">' + t.code + '</span>';
+
+    const tdName = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.value = t.name;
+    inp.setAttribute("aria-label", "Nome da tarefa " + t.code);
+    inp.oninput = () => { t.name = inp.value; save(); renderGrid(); };
+    tdName.appendChild(inp);
+
+    const tdMode = document.createElement("td");
+    const sel = document.createElement("select");
+    sel.setAttribute("aria-label", "Rodízio de " + t.code);
+    [["dia","Alterna por dia"],["semana","Alterna por semana"],
+     ["fixa-a","Fixa: " + (cfg.nameA||"A")],["fixa-b","Fixa: " + (cfg.nameB||"B")]]
+      .forEach(([v,l]) => sel.add(new Option(l, v)));
+    sel.value = t.mode;
+    sel.onchange = () => { t.mode = sel.value; save(); renderGrid(); };
+    tdMode.appendChild(sel);
+
+    const tdRm = document.createElement("td");
+    const rm = document.createElement("button");
+    rm.className = "rm"; rm.textContent = "×";
+    rm.title = "Remover tarefa";
+    rm.setAttribute("aria-label", "Remover " + t.name);
+    rm.onclick = () => { cfg.tasks.splice(i,1); save(); renderAll(); };
+    tdRm.appendChild(rm);
+
+    tr.append(tdCode, tdName, tdMode, tdRm);
+    tb.appendChild(tr);
+  });
+}
+
+function renderAll(){ renderRows(); renderGrid(); }
+function save(){ store.set("rodizio:cfg", cfg); }
+
+$("prev").onclick = () => { monday = addDays(monday, -7); renderGrid(); };
+$("next").onclick = () => { monday = addDays(monday, 7); renderGrid(); };
+$("thisWeek").onclick = () => { monday = mondayOf(new Date()); renderGrid(); };
+$("nameA").oninput = e => { cfg.nameA = e.target.value; save(); renderAll(); };
+$("nameB").oninput = e => { cfg.nameB = e.target.value; save(); renderAll(); };
+$("sat").onchange = e => { cfg.sat = e.target.checked; save(); renderGrid(); };
+$("swap").onclick = () => { cfg.offset = (cfg.offset + 1) % 2; save(); renderGrid(); };
+$("print").onclick = () => window.print();
+$("add").onclick = () => {
+  const nums = cfg.tasks.map(t => +t.code.slice(4)).filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  cfg.tasks.push({ code:"ALM-" + String(next).padStart(2,"0"), name:"Nova tarefa", mode:"dia" });
+  save(); renderAll();
+  const inputs = document.querySelectorAll("#rows input[type=text]");
+  inputs[inputs.length-1].select();
+};
+
+(function(){
+  const bc = $("barcode");
+  let seed = weekIndex(monday) || 7;
+  for (let i=0;i<64;i++){
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const b = document.createElement("i");
+    b.style.width = (seed % 3 + 1) + "px";
+    b.style.height = (60 + seed % 41) + "%";
+    bc.appendChild(b);
+  }
+})();
+
+(async () => {
+  const saved = await store.get("rodizio:cfg");
+  if (saved && Array.isArray(saved.tasks)) cfg = Object.assign(structuredClone(DEFAULTS), saved);
+  checks = (await store.get("rodizio:checks")) || {};
+  $("nameA").value = cfg.nameA;
+  $("nameB").value = cfg.nameB;
+  $("sat").checked = cfg.sat;
+  renderAll();
+})();
+</script>
